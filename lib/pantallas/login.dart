@@ -84,10 +84,11 @@ class _LoginPageState extends State<LoginPage> {
                     TextField(
                       controller: _usuario,
                       decoration: const InputDecoration(
-                        labelText: 'Usuario',
+                        labelText: 'Email',
                         border: OutlineInputBorder(),
                       ),
-                      autofillHints: const [AutofillHints.username],
+                      autofillHints: const [AutofillHints.email],
+                      keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
                       textInputAction: TextInputAction.next,
                     ),

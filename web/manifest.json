@@ -1,11 +1,11 @@
 {
-    "name": "gastos",
-    "short_name": "gastos",
+    "name": "Mis Gastos",
+    "short_name": "Gastos",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#009688",
+    "description": "Registro de gastos personales",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

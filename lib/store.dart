@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show ChangeNotifier, DateTimeRange;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'constantes.dart';
@@ -30,6 +30,32 @@ class GastosStore extends ChangeNotifier {
   bool cargando = false;
   Object? error;
 
+  /// Filtros de la pestaña Gastos. Se limpian al cambiar de período.
+  DateTimeRange? filtroFechas;
+  Set<int> filtroCategorias = {};
+
+  bool get hayFiltros => filtroFechas != null || filtroCategorias.isNotEmpty;
+
+  List<Gasto> get gastosFiltrados => gastos.where((g) {
+    final f = filtroFechas;
+    if (f != null && (g.fecha.isBefore(f.start) || g.fecha.isAfter(f.end))) {
+      return false;
+    }
+    return filtroCategorias.isEmpty || filtroCategorias.contains(g.categoriaId);
+  }).toList();
+
+  void filtrar({DateTimeRange? fechas, Set<int>? categorias}) {
+    filtroFechas = fechas;
+    filtroCategorias = categorias ?? filtroCategorias;
+    notifyListeners();
+  }
+
+  void limpiarFiltros() {
+    filtroFechas = null;
+    filtroCategorias = {};
+    notifyListeners();
+  }
+
   /// El período en curso, si hay uno.
   Periodo? get abierto => periodos.where((p) => p.abierto).firstOrNull;
 
@@ -55,6 +81,10 @@ class GastosStore extends ChangeNotifier {
           periodos.where((p) => p.id == elegido).firstOrNull ??
           periodos.where((p) => p.contiene(hoy)).firstOrNull ??
           periodos.firstOrNull;
+      if (periodo?.id != elegido) {
+        filtroFechas = null;
+        filtroCategorias = {};
+      }
       await _cargarDelPeriodo();
     } catch (e) {
       error = e is ParallelWaitError ? e.errors : e;

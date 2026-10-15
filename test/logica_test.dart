@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:gastos/constantes.dart';
 import 'package:gastos/formato.dart';
 import 'package:gastos/modelos.dart';
@@ -143,5 +144,36 @@ void main() {
       usd: 400,
     );
     expect(m.detalle, r'US$ 400 a $ 1.530 · Cuenta');
+  });
+
+  test('filtros de gastos por fechas y categorías', () {
+    Gasto gasto(int dia, int cat, double monto) => Gasto(
+      fecha: DateTime(2026, 10, dia),
+      descripcion: 'x',
+      monto: monto,
+      formaPago: 'Mercado Pago',
+      categoriaId: cat,
+    );
+    final s = GastosStore()
+      ..gastos = [gasto(4, 1, 100), gasto(10, 2, 200), gasto(15, 1, 400)];
+    expect(s.hayFiltros, isFalse);
+    expect(s.gastosFiltrados.length, 3);
+
+    s.filtrar(
+      fechas: DateTimeRange(
+        start: DateTime(2026, 10, 4),
+        end: DateTime(2026, 10, 10),
+      ),
+    );
+    expect(s.gastosFiltrados.map((g) => g.monto), [100, 200]);
+
+    s.filtrar(fechas: s.filtroFechas, categorias: {1});
+    expect(s.gastosFiltrados.map((g) => g.monto), [100]);
+
+    s.filtrar(fechas: null);
+    expect(s.gastosFiltrados.map((g) => g.monto), [100, 400]);
+
+    s.limpiarFiltros();
+    expect(s.hayFiltros, isFalse);
   });
 }

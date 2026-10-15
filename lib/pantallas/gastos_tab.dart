@@ -10,12 +10,31 @@ class GastosTab extends StatelessWidget {
 
   final GastosStore store;
 
+  Future<void> _elegirFechas(BuildContext context) async {
+    final p = store.periodo!;
+    final hoy = DateUtils.dateOnly(DateTime.now());
+    final ultimo = p.fin ?? (hoy.isAfter(p.inicio) ? hoy : p.inicio);
+    final rango = await showDateRangePicker(
+      context: context,
+      firstDate: p.inicio,
+      lastDate: ultimo,
+      initialDateRange: store.filtroFechas,
+      helpText: 'Gastos entre',
+      saveText: 'Filtrar',
+    );
+    if (rango != null) store.filtrar(fechas: rango);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final gastos = store.gastosFiltrados;
+    final total = gastos.fold<double>(0, (s, g) => s + g.monto);
+    final fechas = store.filtroFechas;
+
     final filas = <Widget>[];
     DateTime? dia;
-    for (final g in store.gastos) {
+    for (final g in gastos) {
       if (g.fecha != dia) {
         dia = g.fecha;
         filas.add(
@@ -41,24 +60,71 @@ class GastosTab extends StatelessWidget {
         children: [
           Card(
             child: ListTile(
-              title: const Text('Total gastado'),
+              title: Text(
+                store.hayFiltros ? 'Total filtrado' : 'Total gastado',
+              ),
               subtitle: Text(
-                store.gastos.isEmpty
+                store.hayFiltros
+                    ? '${gastos.length} de ${store.gastos.length} gastos · '
+                          'del período: ${plata(store.totalGastado)}'
+                    : store.gastos.isEmpty
                     ? '0 gastos'
                     : '${store.gastos.length} gastos · '
                           'tocá uno para editarlo o borrarlo',
               ),
-              trailing: Text(
-                plata(store.totalGastado),
-                style: theme.textTheme.titleLarge,
-              ),
+              trailing: Text(plata(total), style: theme.textTheme.titleLarge),
             ),
           ),
-          if (store.gastos.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32),
+          const SizedBox(height: 8),
+          // Filtros: fechas dentro del período y categorías.
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              spacing: 8,
+              children: [
+                if (store.hayFiltros)
+                  ActionChip(
+                    avatar: const Icon(Icons.close, size: 18),
+                    label: const Text('Limpiar'),
+                    onPressed: store.limpiarFiltros,
+                  ),
+                InputChip(
+                  avatar: const Icon(Icons.date_range, size: 18),
+                  label: Text(
+                    fechas == null
+                        ? 'Fechas'
+                        : '${fechaCorta(fechas.start)} – ${fechaCorta(fechas.end)}',
+                  ),
+                  selected: fechas != null,
+                  showCheckmark: false,
+                  onPressed: () => _elegirFechas(context),
+                  onDeleted: fechas == null
+                      ? null
+                      : () => store.filtrar(fechas: null),
+                ),
+                for (final c in store.categorias)
+                  FilterChip(
+                    avatar: Icon(c.iconData, size: 18),
+                    label: Text(c.nombre),
+                    selected: store.filtroCategorias.contains(c.id),
+                    showCheckmark: false,
+                    onSelected: (si) => store.filtrar(
+                      fechas: fechas,
+                      categorias: si
+                          ? {...store.filtroCategorias, c.id!}
+                          : ({...store.filtroCategorias}..remove(c.id)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (gastos.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(32),
               child: Text(
-                'Todavía no cargaste gastos en este período',
+                store.hayFiltros
+                    ? 'No hay gastos con estos filtros'
+                    : 'Todavía no cargaste gastos en este período',
                 textAlign: TextAlign.center,
               ),
             ),

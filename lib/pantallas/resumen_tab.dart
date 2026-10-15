@@ -9,8 +9,21 @@ class ResumenTab extends StatelessWidget {
 
   final GastosStore store;
 
+  /// Las compras de dólares no son gastos, pero en el resumen se muestran
+  /// como una fila más porque también descuentan pesos.
+  static final _dolares = TipoMovimiento.dolares.label;
+
+  List<MapEntry<String, double>> _conDolares(
+    List<MapEntry<String, double>> filas,
+  ) {
+    if (store.totalDolaresArs <= 0) return filas;
+    return [...filas, MapEntry(_dolares, store.totalDolaresArs)]
+      ..sort((a, b) => b.value.compareTo(a.value));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final total = store.totalGastado + store.totalDolaresArs;
     return RefreshIndicator(
       onRefresh: store.cargar,
       child: ListView(
@@ -19,23 +32,26 @@ class ResumenTab extends StatelessWidget {
         children: [
           _Seccion(
             titulo: 'Por categoría',
-            total: store.totalGastado,
-            filas: store.totalesPor(
-              (g) => store.nombreCategoria(g.categoriaId),
+            total: total,
+            filas: _conDolares(
+              store.totalesPor((g) => store.nombreCategoria(g.categoriaId)),
             ),
-            icono: (nombre) =>
-                store.categorias
-                    .where((c) => c.nombre == nombre)
-                    .firstOrNull
-                    ?.iconData ??
-                Icons.label,
+            icono: (nombre) => nombre == _dolares
+                ? TipoMovimiento.dolares.icono
+                : store.categorias
+                          .where((c) => c.nombre == nombre)
+                          .firstOrNull
+                          ?.iconData ??
+                      Icons.label,
           ),
           const SizedBox(height: 8),
           _Seccion(
             titulo: 'Por forma de pago',
-            total: store.totalGastado,
-            filas: store.totalesPor((g) => g.formaPago),
-            icono: (f) => (formasPago[f] ?? Medio.cuenta).icono,
+            total: total,
+            filas: _conDolares(store.totalesPor((g) => g.formaPago)),
+            icono: (f) => f == _dolares
+                ? TipoMovimiento.dolares.icono
+                : (formasPago[f] ?? Medio.cuenta).icono,
           ),
         ],
       ),
